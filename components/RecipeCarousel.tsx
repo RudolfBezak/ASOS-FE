@@ -113,20 +113,12 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
       Extrapolate.CLAMP
     )
 
-    const opacity = interpolate(
-      Math.abs(translateX.value),
-      [0, cardWidth * 0.5],
-      [1, 0.3],
-      Extrapolate.CLAMP
-    )
-
     return {
       transform: [
         { translateX: translateX.value },
         { translateY: translateY.value },
         { rotate: `${rotate}deg` },
       ],
-      opacity,
     }
   })
 
