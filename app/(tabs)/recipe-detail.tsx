@@ -101,30 +101,42 @@ export default function RecipeDetailScreen() {
   }
 
   const handleReport = async () => {
-    if (!user || isReporting || hasReported) return
+    if (!user || isReporting || hasReported) {
+      console.log('Report blocked:', { user: !!user, isReporting, hasReported })
+      return
+    }
+
+    console.log('Starting report flow...')
 
     showConfirm(
       'Nahlásiť recept',
       'Naozaj chceš nahlásiť tento recept ako nevhodný obsah?',
       async () => {
+        console.log('User confirmed report')
         try {
           setIsReporting(true)
+          console.log('Reporting recipe:', recipeId, 'by user:', user.id)
+          
           const { error } = await reportRecipe(user.id, recipeId, 'Nevhodný obsah')
+          
           if (error) {
             console.error('Error reporting recipe:', error)
             showAlert('Chyba', 'Nepodarilo sa nahlásiť recept')
           } else {
+            console.log('Report successful!')
             setHasReported(true)
-            showAlert('Úspech', 'Recept bol nahlásený. Ďakujeme za spätnú väzbu.')
+            showAlert('✓ Úspech', 'Recept bol nahlásený. Ďakujeme za spätnú väzbu. Náš tým ho skontroluje.')
           }
         } catch (err) {
-          console.error('Error:', err)
+          console.error('Exception during report:', err)
           showAlert('Chyba', 'Nastala neočakávaná chyba')
         } finally {
           setIsReporting(false)
         }
       },
-      undefined,
+      () => {
+        console.log('User cancelled report')
+      },
       'Nahlásiť',
       'Zrušiť'
     )

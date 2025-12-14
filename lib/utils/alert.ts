@@ -69,21 +69,41 @@ export const showSimpleAlert = (title: string, message?: string) => {
 export const showConfirm = (
   title: string,
   message: string,
-  onConfirm: () => void,
+  onConfirm: () => void | Promise<void>,
   onCancel?: () => void,
   confirmText: string = 'OK',
   cancelText: string = 'Zrušiť'
 ) => {
-  showAlert(title, message, [
-    {
-      text: cancelText,
-      style: 'cancel',
-      onPress: onCancel
-    },
-    {
-      text: confirmText,
-      style: 'destructive',
-      onPress: onConfirm
+  if (Platform.OS === 'web') {
+    // Web-specific implementation with proper async handling
+    const fullMessage = `${title}\n\n${message}`
+    const confirmed = window.confirm(fullMessage)
+    
+    if (confirmed) {
+      // Handle both sync and async callbacks
+      const result = onConfirm()
+      if (result instanceof Promise) {
+        result.catch(err => {
+          console.error('Error in confirm callback:', err)
+          window.alert('Nastala chyba pri vykonávaní akcie')
+        })
+      }
+    } else if (onCancel) {
+      onCancel()
     }
-  ])
+  } else {
+    // Native implementation
+    showAlert(title, message, [
+      {
+        text: cancelText,
+        style: 'cancel',
+        onPress: onCancel
+      },
+      {
+        text: confirmText,
+        style: 'destructive',
+        onPress: onConfirm
+      }
+    ])
+  }
 }
