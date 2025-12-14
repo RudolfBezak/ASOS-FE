@@ -1,6 +1,6 @@
 // components/RecipeCarousel.tsx
 import { LinearGradient } from 'expo-linear-gradient'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Image,
   ScrollView,
@@ -34,17 +34,34 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
   const [currentIndex, setCurrentIndex] = useState(0)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
+  const cardWidth = width - 32
   const translateX = useSharedValue(0)
   const translateY = useSharedValue(0)
-  const cardWidth = width - 32
+  const nextCardTranslateX = useSharedValue(cardWidth * 1.2)
+  const swipeDirection = useSharedValue(0)
 
   const isMobile = width < 768
 
-  const handleNextRecipe = () => {
-    setCurrentIndex((prev) => (prev === recipes.length - 1 ? 0 : prev + 1))
-    setCurrentImageIndex(0)
-    translateX.value = 0
-    translateY.value = 0
+  const handleNextRecipe = (direction: number) => {
+    swipeDirection.value = direction
+    
+    setTimeout(() => {
+      const newIndex = currentIndex === recipes.length - 1 ? 0 : currentIndex + 1
+      setCurrentIndex(newIndex)
+      setCurrentImageIndex(0)
+      
+      const slideInDirection = direction > 0 ? -1 : 1
+      translateX.value = slideInDirection * cardWidth * 1.2
+      translateY.value = 0
+      
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          translateX.value = withSpring(0, { damping: 150, stiffness: 500 })
+        })
+      })
+      
+      nextCardTranslateX.value = cardWidth * 1.2
+    }, 200)
   }
 
   const handleNextImage = () => {
@@ -64,14 +81,14 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
   const handleLike = () => {
     if (recipes[currentIndex]) {
       onLike(recipes[currentIndex].id)
-      handleNextRecipe()
+      handleNextRecipe(1)
     }
   }
 
   const handleDislike = () => {
     if (recipes[currentIndex]) {
       onDislike(recipes[currentIndex].id)
-      handleNextRecipe()
+      handleNextRecipe(-1)
     }
   }
 
@@ -92,16 +109,29 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
       const swipeThreshold = cardWidth * 0.5
       
       if (Math.abs(event.translationX) > swipeThreshold) {
-        if (event.translationX > 0) {
+        const direction = event.translationX > 0 ? 1 : -1
+        swipeDirection.value = direction
+        
+        if (direction > 0) {
           runOnJS(triggerLike)()
+          nextCardTranslateX.value = -cardWidth * 1.2
         } else {
           runOnJS(triggerDislike)()
+          nextCardTranslateX.value = cardWidth * 1.2
         }
+        
         translateX.value = withSpring(event.translationX > 0 ? cardWidth * 2 : -cardWidth * 2)
         translateY.value = withSpring(0)
+        
+        setTimeout(() => {
+          nextCardTranslateX.value = withSpring(0, { damping: 20, stiffness: 90 })
+        }, 100)
       } else {
         translateX.value = withSpring(0)
         translateY.value = withSpring(0)
+        const direction = event.translationX > 0 ? 1 : -1
+        const resetPosition = direction > 0 ? -cardWidth * 1.2 : cardWidth * 1.2
+        nextCardTranslateX.value = withSpring(resetPosition, { damping: 20, stiffness: 90 })
       }
     })
 
@@ -148,6 +178,18 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
     }
   })
 
+  const nextCardStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateX: nextCardTranslateX.value },
+      ],
+    }
+  })
+
+  useEffect(() => {
+    nextCardTranslateX.value = cardWidth * 1.2
+  }, [currentIndex, nextCardTranslateX, cardWidth])
+
   if (!recipes || recipes.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -188,11 +230,43 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
   }
 
   const currentImage = images[currentImageIndex]
+  const nextIndex = currentIndex === recipes.length - 1 ? 0 : currentIndex + 1
+  const nextRecipe = recipes[nextIndex]
+  const nextImages = nextRecipe?.recipe_images || []
+  const nextImage = nextImages[0]
 
   return (
     <View style={styles.container}>
-      {/* Main Content - Responsive Layout */}
-      <GestureDetector gesture={panGesture}>
+      {/* Card Stack Container */}
+      <View style={styles.cardStack}>
+        {/* Next Card (Behind) - Slides in from opposite side */}
+        {nextRecipe && (
+          <Animated.View style={[styles.nextCard, isMobile && styles.mainContentMobile, nextCardStyle]}>
+            <View style={[styles.leftSide, isMobile && styles.leftSideMobile]}>
+              <View style={styles.imageContainer}>
+                {nextImage ? (
+                  <Image
+                    source={{ uri: nextImage.image_url }}
+                    style={styles.image}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.image, styles.placeholderImage]}>
+                    <Text style={styles.placeholderText}>🍳</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+            <View style={[styles.rightSide, isMobile && styles.rightSideMobile]}>
+              <View style={styles.content}>
+                <Text style={styles.title} numberOfLines={2}>{nextRecipe.title}</Text>
+              </View>
+            </View>
+          </Animated.View>
+        )}
+
+        {/* Current Card (On Top) */}
+        <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.mainContent, isMobile && styles.mainContentMobile, cardStyle]}>
           {/* Like Overlay (Green) - Radial gradient from border to center */}
           <Animated.View style={[styles.swipeOverlay, likeOverlayStyle]} pointerEvents="none">
@@ -386,6 +460,7 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
         
         </Animated.View>
       </GestureDetector>
+      </View>
       {/* Like/Dislike Buttons */}
       <View style={styles.actionButtons}>
         <TouchableOpacity
@@ -413,6 +488,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  cardStack: {
+    flex: 1,
+    position: 'relative',
+    margin: 16,
+  },
+  nextCard: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+    zIndex: 1,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -436,9 +533,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   mainContent: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
-    margin: 16,
     backgroundColor: 'white',
     borderRadius: 16,
     overflow: 'hidden',
@@ -447,6 +547,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+    zIndex: 2,
   },
   leftSide: {
     width: '45%',
