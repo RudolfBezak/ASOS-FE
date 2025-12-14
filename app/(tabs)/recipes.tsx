@@ -1,7 +1,7 @@
 // app/(tabs)/recipes.tsx
 import { router } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import RecipeCarousel from '../../components/RecipeCarousel'
 import RecipeFiltersModal, { RecipeFilters } from '../../components/RecipeFilters'
 import { getUnsavedRecipes } from '../../lib/api/recipies'
@@ -48,6 +48,23 @@ export default function RecipesScreen() {
   }, [filters, user])
 
   useEffect(() => {
+    if (Platform.OS === 'web') {
+      // Prevent body scrolling on web
+      document.body.style.overflow = 'hidden'
+      document.documentElement.style.overflow = 'hidden'
+      document.body.style.height = '100vh'
+      document.documentElement.style.height = '100vh'
+      
+      return () => {
+        document.body.style.overflow = ''
+        document.documentElement.style.overflow = ''
+        document.body.style.height = ''
+        document.documentElement.style.height = ''
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     // Spočítame počet aktívnych filtrov
     let count = 0
     if (filters.categoryId) count++
@@ -76,16 +93,6 @@ export default function RecipesScreen() {
       }
     } catch (err) {
       console.error('Error:', err)
-    }
-  }
-
-  const handleDislike = (recipeId: number) => {
-    // Len odstránime recept zo zoznamu bez uloženia
-    setRecipes(prev => prev.filter(r => r.id !== recipeId))
-
-    // Ak došli recepty, načítame nové
-    if (recipes.length <= 3) {
-      loadRecipes()
     }
   }
 
@@ -189,7 +196,6 @@ export default function RecipesScreen() {
       <RecipeCarousel
         recipes={recipes}
         onLike={handleLike}
-        onDislike={handleDislike}
         onReport={handleReport}
       />
 
@@ -269,6 +275,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+    ...(Platform.OS === 'web' && {
+      width: '100vw' as any,
+      height: '100vh' as any,
+      overflow: 'hidden' as any,
+      position: 'fixed' as any,
+      top: 0,
+      left: 0,
+    }),
   },
   header: {
     backgroundColor: 'white',

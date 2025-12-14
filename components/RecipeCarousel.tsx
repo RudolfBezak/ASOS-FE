@@ -1,8 +1,9 @@
 // components/RecipeCarousel.tsx
 import { LinearGradient } from 'expo-linear-gradient'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -25,44 +26,24 @@ import { theme } from '../lib/theme'
 interface RecipeCarouselProps {
   recipes: Recipe[]
   onLike: (recipeId: number) => void
-  onDislike: (recipeId: number) => void
   onReport: (recipeId: number) => void
 }
 
-export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }: RecipeCarouselProps) {
+export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCarouselProps) {
   const { width } = useWindowDimensions()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const isTransitioning = useSharedValue(false)
 
   const cardWidth = width - 32
   const translateX = useSharedValue(0)
   const translateY = useSharedValue(0)
   const nextCardTranslateX = useSharedValue(cardWidth * 1.2)
+  const nextCardOpacity = useSharedValue(0)
   const swipeDirection = useSharedValue(0)
 
   const isMobile = width < 768
 
-  const handleNextRecipe = (direction: number) => {
-    swipeDirection.value = direction
-    
-    setTimeout(() => {
-      const newIndex = currentIndex === recipes.length - 1 ? 0 : currentIndex + 1
-      setCurrentIndex(newIndex)
-      setCurrentImageIndex(0)
-      
-      const slideInDirection = direction > 0 ? -1 : 1
-      translateX.value = slideInDirection * cardWidth * 1.2
-      translateY.value = 0
-      
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          translateX.value = withSpring(0, { damping: 150, stiffness: 500 })
-        })
-      })
-      
-      nextCardTranslateX.value = cardWidth * 1.2
-    }, 200)
-  }
 
   const handleNextImage = () => {
     const current = recipes[currentIndex]
@@ -78,18 +59,88 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
     }
   }
 
-  const handleLike = () => {
-    if (recipes[currentIndex]) {
-      onLike(recipes[currentIndex].id)
-      handleNextRecipe(1)
+  const nextRecipeTimeoutRef = useRef<number | null>(null)
+
+  const handleNextRecipe = (direction: number) => {
+    if (nextRecipeTimeoutRef.current !== null) {
+      return
     }
+    
+    swipeDirection.value = direction
+    
+    nextRecipeTimeoutRef.current = setTimeout(() => {
+      nextRecipeTimeoutRef.current = null
+      
+      setCurrentIndex((prevIndex) => {
+        const newIndex = prevIndex === recipes.length - 1 ? 0 : prevIndex + 1
+        
+        setCurrentImageIndex(0)
+        
+        const slideInDirection = direction > 0 ? -1 : 1
+        translateX.value = slideInDirection * cardWidth * 1.2
+        translateY.value = 0
+        
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            translateX.value = withSpring(0, { damping: 150, stiffness: 500 }, () => {
+              isTransitioning.value = false
+            })
+          })
+        })
+        
+        nextCardOpacity.value = 0
+        nextCardTranslateX.value = cardWidth * 1.2
+        
+        return newIndex
+      })
+    }, 200)
+  }
+
+  const handleLike = () => {
+    if (isTransitioning.value || !recipes[currentIndex]) {
+      return
+    }
+    
+    isTransitioning.value = true
+    onLike(recipes[currentIndex].id)
+    
+    const direction = 1
+    swipeDirection.value = direction
+    
+    translateX.value = withSpring(cardWidth * 2, { damping: 20, stiffness: 90 })
+    translateY.value = withSpring(0)
+    
+    nextCardTranslateX.value = -cardWidth * 1.2
+    
+    setTimeout(() => {
+      nextCardOpacity.value = 1
+      nextCardTranslateX.value = withSpring(0, { damping: 20, stiffness: 90 })
+    }, 100)
+    
+    handleNextRecipe(direction)
   }
 
   const handleDislike = () => {
-    if (recipes[currentIndex]) {
-      onDislike(recipes[currentIndex].id)
-      handleNextRecipe(-1)
+    if (isTransitioning.value || !recipes[currentIndex]) {
+      return
     }
+    
+    isTransitioning.value = true
+    
+    const direction = -1
+    swipeDirection.value = direction
+    
+    translateX.value = withSpring(-cardWidth * 2, { damping: 20, stiffness: 90 })
+    translateY.value = withSpring(0)
+    
+    nextCardTranslateX.value = cardWidth * 1.2
+    
+    setTimeout(() => {
+      nextCardOpacity.value = 1
+      nextCardTranslateX.value = withSpring(0, { damping: 20, stiffness: 90 })
+    }, 100)
+    
+    handleNextRecipe(direction)
   }
 
   const triggerLike = () => {
@@ -124,6 +175,7 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
         translateY.value = withSpring(0)
         
         setTimeout(() => {
+          nextCardOpacity.value = 1
           nextCardTranslateX.value = withSpring(0, { damping: 20, stiffness: 90 })
         }, 100)
       } else {
@@ -131,6 +183,7 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
         translateY.value = withSpring(0)
         const direction = event.translationX > 0 ? 1 : -1
         const resetPosition = direction > 0 ? -cardWidth * 1.2 : cardWidth * 1.2
+        nextCardOpacity.value = 0
         nextCardTranslateX.value = withSpring(resetPosition, { damping: 20, stiffness: 90 })
       }
     })
@@ -183,12 +236,30 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
       transform: [
         { translateX: nextCardTranslateX.value },
       ],
+      opacity: nextCardOpacity.value,
     }
   })
 
   useEffect(() => {
+    if (nextRecipeTimeoutRef.current !== null) {
+      clearTimeout(nextRecipeTimeoutRef.current)
+      nextRecipeTimeoutRef.current = null
+    }
+    nextCardOpacity.value = 0
     nextCardTranslateX.value = cardWidth * 1.2
-  }, [currentIndex, nextCardTranslateX, cardWidth])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex])
+
+  useEffect(() => {
+    if (recipes && recipes.length > 0) {
+      const currentRecipe = recipes[currentIndex]
+      const nextIndex = currentIndex === recipes.length - 1 ? 0 : currentIndex + 1
+      const nextRecipe = recipes[nextIndex]
+      
+      console.log('Current recipe:', currentRecipe?.title || 'N/A')
+      console.log('Next recipe:', nextRecipe?.title || 'N/A')
+    }
+  }, [currentIndex, recipes])
 
   if (!recipes || recipes.length === 0) {
     return (
@@ -487,6 +558,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+    ...(Platform.OS === 'web' && {
+      width: '100vw' as any,
+      height: '100vh' as any,
+      overflow: 'hidden' as any,
+    }),
   },
   cardStack: {
     flex: 1,
