@@ -272,17 +272,24 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
     }
   }, [currentIndex, recipes])
 
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyEmoji}>🎉</Text>
+      <Text style={styles.emptyText}>Už si videl všetky recepty!</Text>
+      <Text style={styles.emptySubtext}>Skús zmeniť filtre alebo sa vráť neskôr</Text>
+    </View>
+  )
+
   if (!recipes || recipes.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyEmoji}>🎉</Text>
-        <Text style={styles.emptyText}>Už si videl všetky recepty!</Text>
-        <Text style={styles.emptySubtext}>Skús zmeniť filtre alebo sa vráť neskôr</Text>
-      </View>
-    )
+    return renderEmptyState()
   }
 
   const currentRecipe = recipes[currentIndex]
+  
+  if (!currentRecipe) {
+    return renderEmptyState()
+  }
+
   const images = currentRecipe.recipe_images || []
 
   const getDifficultyColor = (difficulty: string) => {
