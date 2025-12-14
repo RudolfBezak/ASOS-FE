@@ -1,60 +1,186 @@
-# Welcome to your Expo app 👋
+<!-- Tech Stack Badges -->
+[![React Native](https://img.shields.io/badge/React_Native-0.81.5-61DAFB?logo=react&logoColor=white)](https://reactnative.dev)
+[![Expo](https://img.shields.io/badge/Expo-~54.0-000020?logo=expo&logoColor=white)](https://expo.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-~5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Supabase](https://img.shields.io/badge/Supabase-2.86-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![Jest](https://img.shields.io/badge/Jest-30.2-C21325?logo=jest&logoColor=white)](https://jestjs.io)
+[![Node.js](https://img.shields.io/badge/Node.js-LTS-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+# Recipe Swiper App
 
-## Get started
+A cross-platform mobile application for managing and discovering recipes, built with React Native, Expo, and Supabase. Users can browse recipes by categories, save favorites, rate recipes, and create their own culinary content.
 
-1. Install dependencies
+## 📋 Features
+
+- **User Authentication** — Sign up, login, and profile management
+- **Recipe Browsing** — Explore recipes with categories, tags, and difficulty levels
+- **Search & Filter** — Find recipes by ingredients, category, or tags
+- **Favorites** — Save and manage your favorite recipes
+- **Ratings & Reviews** — Rate recipes and read community feedback
+- **Recipe Creation** — Create and share your own recipes with images
+- **MVVM Architecture** — Clean separation of concerns with ViewModels and API layer
+
+## 🏗️ Project Structure
+
+```
+Recipe Swiper App/
+├── app/                    # Expo Router file-based routing
+│   ├── (tabs)/             # Tab navigation screens
+│   ├── _layout.tsx         # Root layout
+│   └── modal.tsx           # Modal screens
+├── lib/
+│   ├── api/                # API layer (Supabase calls)
+│   │   ├── auth.tsx
+│   │   ├── recipies.tsx
+│   │   ├── ratings.tsx
+│   │   ├── reviews.tsx
+│   │   └── saved.tsx
+│   ├── viewmodels/         # Business logic hooks
+│   │   ├── useAuth.tsx
+│   │   ├── useRecipes.tsx
+│   │   ├── useRatings.tsx
+│   │   ├── useReviews.tsx
+│   │   └── useSaved.tsx
+│   ├── models/             # TypeScript type definitions
+│   │   └── types.tsx
+│   └── supabase.js         # Supabase client configuration
+├── components/             # Reusable UI components
+├── __tests__/              # Test suites
+│   ├── unit/               # Unit tests
+│   └── integration/        # Integration tests
+└── constants/              # Theme and app constants
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- *Node.js* (LTS version recommended)
+- *npm* or *yarn*
+- *Expo Go app* (for mobile testing)
+- *Supabase* account and project
+
+### Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone <repository-url>
+   cd Recipe Swiper App
+   ```
+
+2. **Install dependencies**
 
    ```bash
    npm install
    ```
 
-2. Start the app
+3. **Configure environment variables**
 
-   ```bash
-   npx expo start
+   A `.env` file is already included with the necessary Supabase credentials.
+   
+   If you need to use your own Supabase instance, update the `.env` file:
+
+   ```env
+   EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+   EXPO_PUBLIC_SUPABASE_KEY=your_supabase_anon_key
    ```
 
-In the output, you'll find options to open the app in a
+4. **Start the development server**
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+   ```bash
+   npm start
+   ```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Running the App
 
-## Testing
+After starting the development server, you can:
 
-Run tests with:
+- Press `a` — Open on Android emulator
+- Press `i` — Open on iOS simulator
+- Press `w` — Open in web browser
+- Scan QR code with Expo Go app on your physical device
+
+## 🌐 Deployment
+
+This app is deployed on **Vercel** for web access.
+
+### Live Vercel Demo
+
+🔗 **[View Live Recipe Swiper App](https://asos-recipe-swiper.vercel.app/)**
+
+### Web Limitations
+
+The web version has some limitations compared to native apps, for example:
+- No camera/image picker (uses file input instead)
+- Limited native animations
+- Some touch gestures may differ
+
+For full functionality, use the native mobile apps.
+
+
+## 🧪 Testing
+
+This project uses Jest and React Native Testing Library for comprehensive testing coverage. It includes unit and also integration tests.
+
+### Running Tests
 
 ```bash
-npm test
+npm test # Run all tests
 ```
 
-See [TESTING.md](TESTING.md) for more details on writing tests.
-
-## Get a fresh project
-
-When you're ready, run:
+### Other useful scripts
 
 ```bash
-npm run reset-project
+npm run build          # Build for web (production)
+npm run android        # Run on Android
+npm run ios            # Run on iOS
+npm run web            # Run in web browser
+npm run lint           # Run ESLint
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Testing structure
 
-## Learn more
+Tests are organized in the `__tests__/` directory:
 
-To learn more about developing your project with Expo, look at the following resources:
+- **`unit/api/`** — API function tests
+- **`unit/viewmodels/`** — ViewModel/hook tests
+- **`unit/components/`** — React component tests
+- **`integration/`** — Multi-module workflow tests
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
-## Join the community
+## 🛠️ Technology Stack
 
-Join our community of developers creating universal apps.
+### Frontend
+- **React Native** — Cross-platform mobile framework
+- **Expo** — Development platform and tooling
+- **Expo Router** — File-based navigation
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Backend
+- **Supabase** — Backend-as-a-Service (PostgreSQL, Authentication, Storage)
+
+### State Management & Architecture
+- **MVVM Pattern** — Model-View-ViewModel architecture
+- **Custom Hooks** — ViewModels implemented as React hooks
+- **AsyncStorage** — Persistent session storage
+
+### Testing
+- **Jest** — Testing framework
+- **React Native Testing Library** — Component testing utilities
+- **Jest Expo** — Expo-specific Jest preset
+
+
+## 🔐 Authentication
+
+The app uses Supabase Authentication with email/password. Sessions are persisted in AsyncStorage for seamless user experience across app restarts.
+
+## 📱 Supported Platforms
+
+- ✅ **iOS** (Simulator & Device)
+- ✅ **Android** (Emulator & Device)
+- ⚠️ **Web** (Limited support via Expo)
+
+
+## 📄 License
+
+This project is part of the ASOS course at FEI STU.
