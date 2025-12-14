@@ -60,6 +60,7 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
   }
 
   const nextRecipeTimeoutRef = useRef<number | null>(null)
+  const scrollViewRef = useRef<ScrollView>(null)
 
   const handleNextRecipe = (direction: number) => {
     if (nextRecipeTimeoutRef.current !== null) {
@@ -247,6 +248,16 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
     }
     nextCardOpacity.value = 0
     nextCardTranslateX.value = cardWidth * 1.2
+    
+    // Reset scroll position when recipe changes
+    // Use requestAnimationFrame to ensure it happens after render
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ y: 0, animated: false })
+        }
+      })
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex])
 
@@ -414,7 +425,12 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
         </View>
 
         {/* Right Side - Information (Scrollable) */}
-        <ScrollView style={[styles.rightSide, isMobile && styles.rightSideMobile]} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          key={`recipe-scroll-${currentIndex}`}
+          ref={scrollViewRef}
+          style={[styles.rightSide, isMobile && styles.rightSideMobile]} 
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.content}>
             {/* Title with Report Button */}
             <View style={styles.titleRow}>
