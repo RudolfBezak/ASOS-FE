@@ -570,15 +570,18 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
   )
 }
 
+// Web-specific styles that aren't supported by React Native StyleSheet
+const webContainerStyle = Platform.OS === 'web' ? {
+  width: '100vw' as any,
+  height: '100vh' as any,
+  overflow: 'hidden' as any,
+} : {}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    ...(Platform.OS === 'web' && {
-      width: '100vw' as any,
-      height: '100vh' as any,
-      overflow: 'hidden' as any,
-    }),
+    ...webContainerStyle,
   },
   cardStack: {
     flex: 1,

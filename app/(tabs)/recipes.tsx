@@ -271,18 +271,21 @@ export default function RecipesScreen() {
   )
 }
 
+// Web-specific styles that aren't supported by React Native StyleSheet
+const webContainerStyle = Platform.OS === 'web' ? {
+  width: '100vw' as any,
+  height: '100vh' as any,
+  overflow: 'hidden' as any,
+  position: 'fixed' as any,
+  top: 0,
+  left: 0,
+} : {}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    ...(Platform.OS === 'web' && {
-      width: '100vw' as any,
-      height: '100vh' as any,
-      overflow: 'hidden' as any,
-      position: 'fixed' as any,
-      top: 0,
-      left: 0,
-    }),
+    ...webContainerStyle,
   },
   header: {
     backgroundColor: 'white',
