@@ -23,7 +23,7 @@ A cross-platform mobile application for managing and discovering recipes, built 
 ## 🏗️ Project Structure
 
 ```
-Recipe Swiper App/
+Recipe-Swiper-App/
 ├── app/                    # Expo Router file-based routing
 │   ├── (tabs)/             # Tab navigation screens
 │   ├── _layout.tsx         # Root layout
@@ -55,10 +55,31 @@ Recipe Swiper App/
 
 ### Prerequisites
 
-- *Node.js* (LTS version recommended)
-- *npm* or *yarn*
-- *Expo Go app* (for mobile testing)
-- *Supabase* account and project
+Before you begin, make sure you have the following installed:
+
+#### 1. **Install Node.js** (includes npm)
+   
+   **Windows:**
+   - Download Node.js LTS from [nodejs.org](https://nodejs.org/)
+   - Run the installer
+
+   **macOS:**
+   ```bash
+   # Using Homebrew
+   brew install node
+   ```
+
+   **Linux:**
+   ```bash
+   # Ubuntu/Debian
+   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+   sudo apt-get install -y nodejs
+   ```
+
+#### 2. **Other Requirements**
+- **Expo Go app** — Install on your phone from [App Store](https://apps.apple.com/app/expo-go/id982107779) or [Google Play](https://play.google.com/store/apps/details?id=host.exp.exponent)
+- **Git** — For cloning the repository
+- **.env file** — With Supabase credentials
 
 ### Installation
 
@@ -66,7 +87,7 @@ Recipe Swiper App/
 
    ```bash
    git clone <repository-url>
-   cd Recipe Swiper App
+   cd "Recipe-Swiper-App"
    ```
 
 2. **Install dependencies**
@@ -79,12 +100,7 @@ Recipe Swiper App/
 
    A `.env` file is already included with the necessary Supabase credentials.
    
-   If you need to use your own Supabase instance, update the `.env` file:
-
-   ```env
-   EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
-   EXPO_PUBLIC_SUPABASE_KEY=your_supabase_anon_key
-   ```
+   If you want to use your own Supabase instance, update the `.env` file:
 
 4. **Start the development server**
 
@@ -112,6 +128,7 @@ This app is deployed on **Vercel** for web access.
 ### Web Limitations
 
 The web version has some limitations compared to native apps, for example:
+- **App needs refresh when put out of focus**
 - No camera/image picker (uses file input instead)
 - Limited native animations
 - Some touch gestures may differ
