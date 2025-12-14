@@ -1,15 +1,15 @@
 // app/(tabs)/recipes.tsx
-import React, { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Modal } from 'react-native'
 import { router } from 'expo-router'
+import React, { useEffect, useState } from 'react'
+import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import RecipeCarousel from '../../components/RecipeCarousel'
 import RecipeFiltersModal, { RecipeFilters } from '../../components/RecipeFilters'
-import { Recipe } from '../../lib/models/types'
 import { getUnsavedRecipes } from '../../lib/api/recipies'
-import { saveRecipe } from '../../lib/api/saved'
 import { reportRecipe } from '../../lib/api/reports'
-import { useAuth } from '../../lib/viewmodels/useAuth'
+import { saveRecipe } from '../../lib/api/saved'
+import { Recipe } from '../../lib/models/types'
 import { theme } from '../../lib/theme'
+import { useAuth } from '../../lib/viewmodels/useAuth'
 
 export default function RecipesScreen() {
   const { user, profile, logout } = useAuth()
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: 'white',
-    paddingTop: 60,
+    paddingTop: 16,
     paddingBottom: 16,
     paddingHorizontal: 24,
     flexDirection: 'row',
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
     color: theme.colors.textPrimary,
   },

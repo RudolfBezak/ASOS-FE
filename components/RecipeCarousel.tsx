@@ -1,14 +1,24 @@
 // components/RecipeCarousel.tsx
+import { LinearGradient } from 'expo-linear-gradient'
 import React, { useState } from 'react'
 import {
-  View,
-  Text,
   Image,
-  StyleSheet,
-  TouchableOpacity,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
   useWindowDimensions,
+  View,
 } from 'react-native'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import Animated, {
+  Extrapolate,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated'
 import { Recipe } from '../lib/models/types'
 import { theme } from '../lib/theme'
 
@@ -24,8 +34,127 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
   const [currentIndex, setCurrentIndex] = useState(0)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
-  // Určíme, či sme na mobile zariadení (menej ako 768px)
+  const translateX = useSharedValue(0)
+  const translateY = useSharedValue(0)
+  const cardWidth = width - 32
+
   const isMobile = width < 768
+
+  const handleNextRecipe = () => {
+    setCurrentIndex((prev) => (prev === recipes.length - 1 ? 0 : prev + 1))
+    setCurrentImageIndex(0)
+    translateX.value = 0
+    translateY.value = 0
+  }
+
+  const handleNextImage = () => {
+    const current = recipes[currentIndex]
+    if (current?.recipe_images && current.recipe_images.length > 1) {
+      setCurrentImageIndex((prev) => (prev === (current.recipe_images?.length ?? 1) - 1 ? 0 : prev + 1))
+    }
+  }
+
+  const handlePreviousImage = () => {
+    const current = recipes[currentIndex]
+    if (current?.recipe_images && current.recipe_images.length > 1) {
+      setCurrentImageIndex((prev) => (prev === 0 ? (current.recipe_images?.length ?? 1) - 1 : prev - 1))
+    }
+  }
+
+  const handleLike = () => {
+    if (recipes[currentIndex]) {
+      onLike(recipes[currentIndex].id)
+      handleNextRecipe()
+    }
+  }
+
+  const handleDislike = () => {
+    if (recipes[currentIndex]) {
+      onDislike(recipes[currentIndex].id)
+      handleNextRecipe()
+    }
+  }
+
+  const triggerLike = () => {
+    handleLike()
+  }
+
+  const triggerDislike = () => {
+    handleDislike()
+  }
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      translateX.value = event.translationX
+      translateY.value = event.translationY
+    })
+    .onEnd((event) => {
+      const swipeThreshold = cardWidth * 0.5
+      
+      if (Math.abs(event.translationX) > swipeThreshold) {
+        if (event.translationX > 0) {
+          runOnJS(triggerLike)()
+        } else {
+          runOnJS(triggerDislike)()
+        }
+        translateX.value = withSpring(event.translationX > 0 ? cardWidth * 2 : -cardWidth * 2)
+        translateY.value = withSpring(0)
+      } else {
+        translateX.value = withSpring(0)
+        translateY.value = withSpring(0)
+      }
+    })
+
+  const cardStyle = useAnimatedStyle(() => {
+    const rotate = interpolate(
+      translateX.value,
+      [-cardWidth, 0, cardWidth],
+      [-15, 0, 15],
+      Extrapolate.CLAMP
+    )
+
+    const opacity = interpolate(
+      Math.abs(translateX.value),
+      [0, cardWidth * 0.5],
+      [1, 0.3],
+      Extrapolate.CLAMP
+    )
+
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { rotate: `${rotate}deg` },
+      ],
+      opacity,
+    }
+  })
+
+  const likeOverlayStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      translateX.value,
+      [0, cardWidth * 0.5],
+      [0, 0.6],
+      Extrapolate.CLAMP
+    )
+
+    return {
+      opacity,
+    }
+  })
+
+  const dislikeOverlayStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      translateX.value,
+      [-cardWidth * 0.5, 0],
+      [0.6, 0],
+      Extrapolate.CLAMP
+    )
+
+    return {
+      opacity,
+    }
+  })
 
   if (!recipes || recipes.length === 0) {
     return (
@@ -39,38 +168,6 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
 
   const currentRecipe = recipes[currentIndex]
   const images = currentRecipe.recipe_images || []
-
-  const handleNextRecipe = () => {
-    setCurrentIndex((prev) => (prev === recipes.length - 1 ? 0 : prev + 1))
-    setCurrentImageIndex(0)
-  }
-
-  const handlePreviousRecipe = () => {
-    setCurrentIndex((prev) => (prev === 0 ? recipes.length - 1 : prev - 1))
-    setCurrentImageIndex(0)
-  }
-
-  const handleNextImage = () => {
-    if (images.length > 1) {
-      setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))
-    }
-  }
-
-  const handlePreviousImage = () => {
-    if (images.length > 1) {
-      setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))
-    }
-  }
-
-  const handleLike = () => {
-    onLike(currentRecipe.id)
-    handleNextRecipe()
-  }
-
-  const handleDislike = () => {
-    onDislike(currentRecipe.id)
-    handleNextRecipe()
-  }
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -103,7 +200,29 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
   return (
     <View style={styles.container}>
       {/* Main Content - Responsive Layout */}
-      <View style={[styles.mainContent, isMobile && styles.mainContentMobile]}>
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.mainContent, isMobile && styles.mainContentMobile, cardStyle]}>
+          {/* Like Overlay (Green) - Radial gradient from border to center */}
+          <Animated.View style={[styles.swipeOverlay, likeOverlayStyle]} pointerEvents="none">
+            <LinearGradient
+              colors={['rgba(76, 175, 80, 0.9)', 'rgba(76, 175, 80, 0.5)', 'rgba(76, 175, 80, 0.2)', 'transparent']}
+              locations={[0, 0.3, 0.6, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientOverlay}
+            />
+          </Animated.View>
+
+          {/* Dislike Overlay (Red) - Radial gradient from border to center */}
+          <Animated.View style={[styles.swipeOverlay, dislikeOverlayStyle]} pointerEvents="none">
+            <LinearGradient
+              colors={['rgba(244, 67, 54, 0.9)', 'rgba(244, 67, 54, 0.5)', 'rgba(244, 67, 54, 0.2)', 'transparent']}
+              locations={[0, 0.3, 0.6, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientOverlay}
+            />
+          </Animated.View>
         {/* Left Side - Images */}
         <View style={[styles.leftSide, isMobile && styles.leftSideMobile]}>
           <View style={styles.imageContainer}>
@@ -154,25 +273,6 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
                 <Text style={styles.placeholderText}>🍳</Text>
               </View>
             )}
-          </View>
-
-          {/* Like/Dislike Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.dislikeButton]}
-              onPress={handleDislike}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.actionButtonIcon}>✕</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.likeButton]}
-              onPress={handleLike}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.actionButtonIcon}>♥</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -291,24 +391,25 @@ export default function RecipeCarousel({ recipes, onLike, onDislike, onReport }:
             </View>
           </View>
         </ScrollView>
-      </View>
-
-      {/* Recipe Navigation */}
-      <View style={styles.navigation}>
+        
+        </Animated.View>
+      </GestureDetector>
+      {/* Like/Dislike Buttons */}
+      <View style={styles.actionButtons}>
         <TouchableOpacity
-          style={styles.navButton}
-          onPress={handlePreviousRecipe}
+          style={[styles.actionButton, styles.dislikeButton]}
+          onPress={handleDislike}
           activeOpacity={0.7}
         >
-          <Text style={styles.navButtonText}>← Predchádzajúci</Text>
+          <Text style={styles.actionButtonIcon}>✕</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.navButton}
-          onPress={handleNextRecipe}
+          style={[styles.actionButton, styles.likeButton]}
+          onPress={handleLike}
           activeOpacity={0.7}
         >
-          <Text style={styles.navButtonText}>Ďalší →</Text>
+          <Text style={styles.actionButtonIcon}>♥</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -423,6 +524,8 @@ const styles = StyleSheet.create({
     width: 24,
   },
   actionButtons: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 16,
@@ -619,29 +722,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textDisabled,
     fontStyle: 'italic',
   },
-  navigation: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingBottom: 24,
-    gap: 12,
-  },
-  navButton: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: 'white',
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-  },
-  navButtonText: {
-    fontSize: 15,
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
-  },
+
   // Mobile styles - jednosĺpcové rozloženie
   mainContentMobile: {
     flexDirection: 'column',
@@ -652,5 +733,24 @@ const styles = StyleSheet.create({
   },
   rightSideMobile: {
     width: '100%',
+  },
+  swipeOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
+    pointerEvents: 'none',
+    zIndex: 10,
+    overflow: 'hidden',
+  },
+  gradientOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
   },
 })
