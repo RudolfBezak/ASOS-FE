@@ -1,6 +1,6 @@
 // app/(tabs)/favorites.tsx
-import { router } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { router, useFocusEffect } from 'expo-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -92,13 +92,13 @@ export default function FavoritesScreen() {
     const currentUserId = user?.id || null
     const prevUserId = prevUserIdRef.current
     console.log('[Effect:user] Check - prev:', prevUserId, 'current:', currentUserId, 'hasLoadedOnce:', hasLoadedOnce)
-    
+
     // Always update ref to current user ID
     prevUserIdRef.current = currentUserId
-    
+
     // Only reload if:
     // 1. Auth is complete AND
-    // 2. We've loaded at least once AND  
+    // 2. We've loaded at least once AND
     // 3. Previous user ID was not null (not initial load) AND
     // 4. User ID actually changed
     if (!authLoading && hasLoadedOnce && prevUserId !== null && prevUserId !== currentUserId) {
@@ -106,6 +106,17 @@ export default function FavoritesScreen() {
       loadRecipes()
     }
   }, [user])
+
+  // Focus effect - reload data whenever page becomes focused (fixes web refresh issue)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[Effect:focus] Page focused')
+      if (!authLoading && user && hasLoadedOnce) {
+        console.log('[Effect:focus] Reloading data')
+        loadRecipes()
+      }
+    }, [authLoading, user, hasLoadedOnce])
+  )
 
   const handleRemoveSaved = async (recipeId: number) => {
     if (!user) return

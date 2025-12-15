@@ -1,7 +1,7 @@
 // lib/contexts/AuthContext.tsx
 import { User } from '@supabase/supabase-js'
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { getCurrentUser, getProfile, login, logout, register, sendPasswordResetEmail, updatePassword } from '../api/auth'
+import { ensureProfileExists, getCurrentUser, getProfile, login, logout, register, sendPasswordResetEmail, updatePassword } from '../api/auth'
 import { Profile } from '../models/types'
 import { supabase } from '../supabase'
 
@@ -37,7 +37,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (currentUser) {
           const { data } = await getProfile(currentUser.id)
-          setProfile(data)
+          if (data) {
+            setProfile(data)
+          } else {
+            // Profil neexistuje, vytvor ho s predvoleným menom
+            console.log('[AuthProvider] Profile missing, creating...')
+            const defaultName = currentUser.email?.split('@')[0] || 'Používateľ'
+            const { data: newProfile } = await ensureProfileExists(currentUser.id, defaultName)
+            setProfile(newProfile)
+          }
         }
       } catch (err) {
         console.error('[AuthProvider] Error loading user:', err)
@@ -52,11 +60,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[AuthProvider] Auth state changed:', event)
-      
+
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user)
         const { data: profileData } = await getProfile(session.user.id)
-        setProfile(profileData)
+        if (profileData) {
+          setProfile(profileData)
+        } else {
+          // Profil neexistuje, vytvor ho s predvoleným menom
+          console.log('[AuthProvider] Profile missing on login, creating...')
+          const defaultName = session.user.email?.split('@')[0] || 'Používateľ'
+          const { data: newProfile } = await ensureProfileExists(session.user.id, defaultName)
+          setProfile(newProfile)
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
         setProfile(null)
@@ -72,19 +88,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleLogin = async (email: string, password: string) => {
     setLoading(true)
     setError(null)
-    
+
     const { data, error: loginError } = await login({ email, password })
-    
+
     if (loginError) {
       setError(loginError.message)
       setLoading(false)
       return false
     }
-    
+
     setUser(data.user)
     if (data.user) {
       const { data: profileData } = await getProfile(data.user.id)
-      setProfile(profileData)
+      if (profileData) {
+        setProfile(profileData)
+      } else {
+        // Profil neexistuje, vytvor ho
+        console.log('[handleLogin] Profile missing, creating...')
+        const defaultName = data.user.email?.split('@')[0] || 'Používateľ'
+        const { data: newProfile } = await ensureProfileExists(data.user.id, defaultName)
+        setProfile(newProfile)
+      }
     }
     setLoading(false)
     return true

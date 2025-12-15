@@ -98,11 +98,14 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
   }
 
   const handleLike = () => {
+    console.log('🔵 handleLike called', { currentIndex, recipeId: recipes[currentIndex]?.id })
     if (isTransitioning.value || !recipes[currentIndex]) {
+      console.log('⚠️ Blocked: transitioning or no recipe')
       return
     }
-    
+
     isTransitioning.value = true
+    console.log('✅ Calling onLike with recipeId:', recipes[currentIndex].id)
     onLike(recipes[currentIndex].id)
     
     const direction = 1
@@ -152,7 +155,8 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
     handleDislike()
   }
 
-  const panGesture = Gesture.Pan()
+  // Pan gesture only for mobile (web doesn't need swipe gestures)
+  const panGesture = Platform.OS !== 'web' ? Gesture.Pan()
     .activeOffsetX([-10, 10]) // Aktivuje sa len pri horizontálnom pohybe ±10px
     .failOffsetY([-15, 15]) // Zruší sa pri vertikálnom pohybe ±15px (scroll)
     .onUpdate((event) => {
@@ -190,7 +194,7 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
         nextCardOpacity.value = 0
         nextCardTranslateX.value = withSpring(resetPosition, { damping: 20, stiffness: 90 })
       }
-    })
+    }) : Gesture.Pan()
 
   const cardStyle = useAnimatedStyle(() => {
     const rotate = interpolate(
@@ -357,39 +361,44 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
 
         {/* Current Card (On Top) */}
         <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.mainContent, cardStyle]}>
-          {/* Like Overlay (Green) - Radial gradient from border to center */}
-          <Animated.View style={[styles.swipeOverlay, likeOverlayStyle]} pointerEvents="none">
-            <LinearGradient
-              colors={['rgba(76, 175, 80, 0.9)', 'rgba(76, 175, 80, 0.5)', 'rgba(76, 175, 80, 0.2)', 'transparent']}
-              locations={[0, 0.3, 0.6, 1]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientOverlay}
-            />
-          </Animated.View>
+          <Animated.View style={[styles.mainContent, cardStyle]}>
+            {/* Like Overlay (Green) - Only visible on mobile during swipe */}
+            {Platform.OS !== 'web' && (
+              <>
+                <Animated.View style={[styles.swipeOverlay, likeOverlayStyle]} pointerEvents="none">
+                  <LinearGradient
+                    colors={['rgba(76, 175, 80, 0.9)', 'rgba(76, 175, 80, 0.5)', 'rgba(76, 175, 80, 0.2)', 'transparent']}
+                    locations={[0, 0.3, 0.6, 1]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.gradientOverlay}
+                  />
+                </Animated.View>
 
-          {/* Dislike Overlay (Red) - Radial gradient from border to center */}
-          <Animated.View style={[styles.swipeOverlay, dislikeOverlayStyle]} pointerEvents="none">
-            <LinearGradient
-              colors={['rgba(244, 67, 54, 0.9)', 'rgba(244, 67, 54, 0.5)', 'rgba(244, 67, 54, 0.2)', 'transparent']}
-              locations={[0, 0.3, 0.6, 1]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientOverlay}
-            />
-          </Animated.View>
+                {/* Dislike Overlay (Red) - Only visible on mobile during swipe */}
+                <Animated.View style={[styles.swipeOverlay, dislikeOverlayStyle]} pointerEvents="none">
+                  <LinearGradient
+                    colors={['rgba(244, 67, 54, 0.9)', 'rgba(244, 67, 54, 0.5)', 'rgba(244, 67, 54, 0.2)', 'transparent']}
+                    locations={[0, 0.3, 0.6, 1]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.gradientOverlay}
+                  />
+                </Animated.View>
+              </>
+            )}
 
-        {/* Vertical Scrollable Content */}
-        <ScrollView
-          key={`recipe-scroll-${currentIndex}`}
-          ref={scrollViewRef}
-          style={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Image Section */}
-          <View style={styles.imageSection}>
-            <View style={styles.imageContainer}>
+            {/* Mobile: Single ScrollView for everything */}
+            {isMobile ? (
+              <ScrollView
+                key={`recipe-scroll-${currentIndex}`}
+                ref={scrollViewRef}
+                style={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Image Section */}
+                <View style={styles.imageSection}>
+                  <View style={styles.imageContainer}>
               {currentImage ? (
                 <>
                   <Image
@@ -437,11 +446,11 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
                   <Text style={styles.placeholderText}>🍳</Text>
                 </View>
               )}
-            </View>
-          </View>
+                  </View>
+                </View>
 
-          {/* Content Section */}
-          <View style={styles.content}>
+                {/* Content Section - Mobile */}
+                <View style={styles.content}>
             {/* Title with Report Button */}
             <View style={styles.titleRow}>
               <Text style={styles.title}>{currentRecipe.title}</Text>
@@ -546,17 +555,194 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
               </View>
             )}
 
-            {/* Created Date */}
-            <View style={styles.section}>
-              <Text style={styles.metaText}>
-                Pridané: {new Date(currentRecipe.created_at).toLocaleDateString('sk-SK')}
-              </Text>
-            </View>
-          </View>
-        </ScrollView>
+                {/* Created Date */}
+                <View style={styles.section}>
+                  <Text style={styles.metaText}>
+                    Pridané: {new Date(currentRecipe.created_at).toLocaleDateString('sk-SK')}
+                  </Text>
+                </View>
+              </View>
+            </ScrollView>
+          ) : (
+            /* Web: Fixed image on left, scrollable content on right */
+            <View style={styles.webLayout}>
+              {/* Image Section - Fixed on left */}
+              <View style={styles.webImageSection}>
+                <View style={styles.imageContainer}>
+                  {currentImage ? (
+                    <>
+                      <Image
+                        source={{ uri: currentImage.image_url }}
+                        style={styles.image}
+                        resizeMode="cover"
+                      />
 
-        </Animated.View>
-      </GestureDetector>
+                      {/* Image Navigation Arrows */}
+                      {images.length > 1 && (
+                        <>
+                          <TouchableOpacity
+                            style={[styles.imageArrow, styles.imageArrowLeft]}
+                            onPress={handlePreviousImage}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.imageArrowText}>‹</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[styles.imageArrow, styles.imageArrowRight]}
+                            onPress={handleNextImage}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.imageArrowText}>›</Text>
+                          </TouchableOpacity>
+
+                          {/* Image Dots Indicator */}
+                          <View style={styles.dotsContainer}>
+                            {images.map((_, index) => (
+                              <View
+                                key={index}
+                                style={[
+                                  styles.dot,
+                                  currentImageIndex === index && styles.dotActive,
+                                ]}
+                              />
+                            ))}
+                          </View>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <View style={[styles.image, styles.placeholderImage]}>
+                      <Text style={styles.placeholderText}>🍳</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* Content Section - Scrollable on right */}
+              <ScrollView
+                key={`recipe-scroll-${currentIndex}`}
+                ref={scrollViewRef}
+                style={styles.webContentScroll}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.webContent}>
+                  {/* Title with Report Button */}
+                  <View style={styles.titleRow}>
+                    <Text style={styles.title}>{currentRecipe.title}</Text>
+                    <TouchableOpacity
+                      style={styles.reportButton}
+                      onPress={() => onReport(currentRecipe.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.reportButtonText}>!</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Quick Info Row */}
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoBadge}>
+                      <Text style={[styles.infoBadgeText, { color: getDifficultyColor(currentRecipe.difficulty) }]}>
+                        {getDifficultyText(currentRecipe.difficulty)}
+                      </Text>
+                    </View>
+
+                    {currentRecipe.prep_time_minutes && (
+                      <View style={styles.infoBadge}>
+                        <Text style={styles.infoBadgeIcon}>⏱️</Text>
+                        <Text style={styles.infoBadgeText}>{currentRecipe.prep_time_minutes} min</Text>
+                      </View>
+                    )}
+
+                    <View style={styles.infoBadge}>
+                      <Text style={styles.infoBadgeIcon}>🍽️</Text>
+                      <Text style={styles.infoBadgeText}>{currentRecipe.servings} porcie</Text>
+                    </View>
+
+                    {currentRecipe.avg_rating > 0 && (
+                      <View style={styles.infoBadge}>
+                        <Text style={styles.infoBadgeIcon}>⭐</Text>
+                        <Text style={styles.infoBadgeText}>{currentRecipe.avg_rating.toFixed(1)}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Category */}
+                  {currentRecipe.categories && (
+                    <View style={styles.categoryContainer}>
+                      <View style={styles.categoryBadge}>
+                        <Text style={styles.categoryText}>{currentRecipe.categories.name}</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Description */}
+                  {currentRecipe.description && (
+                    <View style={styles.section}>
+                      <Text style={styles.sectionTitle}>Popis</Text>
+                      <Text style={styles.description}>{currentRecipe.description}</Text>
+                    </View>
+                  )}
+
+                  {/* Ingredients */}
+                  {currentRecipe.ingredients && currentRecipe.ingredients.length > 0 && (
+                    <View style={styles.section}>
+                      <Text style={styles.sectionTitle}>Ingrediencie</Text>
+                      {currentRecipe.ingredients.map((ingredient, index) => (
+                        <View key={index} style={styles.ingredientItem}>
+                          <View style={styles.ingredientBullet} />
+                          <Text style={styles.ingredientText}>
+                            <Text style={styles.ingredientAmount}>
+                              {ingredient.amount} {ingredient.unit}
+                            </Text>
+                            {' '}{ingredient.name}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Steps */}
+                  {currentRecipe.steps && currentRecipe.steps.length > 0 && (
+                    <View style={styles.section}>
+                      <Text style={styles.sectionTitle}>Postup prípravy</Text>
+                      {currentRecipe.steps.map((step, index) => (
+                        <View key={index} style={styles.stepItem}>
+                          <View style={styles.stepNumber}>
+                            <Text style={styles.stepNumberText}>{index + 1}</Text>
+                          </View>
+                          <Text style={styles.stepText}>{step}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Tags */}
+                  {currentRecipe.recipe_tags && currentRecipe.recipe_tags.length > 0 && (
+                    <View style={styles.section}>
+                      <Text style={styles.sectionTitle}>Tagy</Text>
+                      <View style={styles.tagsRow}>
+                        {currentRecipe.recipe_tags.map((recipeTag) => (
+                          <View key={recipeTag.id} style={styles.tag}>
+                            <Text style={styles.tagText}>{recipeTag.tags?.name}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Created Date */}
+                  <View style={styles.section}>
+                    <Text style={styles.metaText}>
+                      Pridané: {new Date(currentRecipe.created_at).toLocaleDateString('sk-SK')}
+                    </Text>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          )}
+          </Animated.View>
+        </GestureDetector>
       </View>
       {/* Like/Dislike Buttons */}
       <View style={styles.actionButtons}>
@@ -655,10 +841,21 @@ const styles = StyleSheet.create({
   scrollContent: {
     flex: 1,
   },
+  webLayout: {
+    flexDirection: 'row',
+    flex: 1,
+  },
   imageSection: {
     width: '100%',
     height: 400,
     backgroundColor: '#f5f5f5',
+  },
+  webImageSection: {
+    width: '45%',
+    height: '100%',
+  },
+  webContentScroll: {
+    flex: 1,
   },
   imageContainer: {
     width: '100%',
@@ -758,6 +955,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 24,
+  },
+  webContent: {
+    padding: 24,
+    paddingLeft: 32,
   },
   titleRow: {
     flexDirection: 'row',

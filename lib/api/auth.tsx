@@ -11,10 +11,36 @@ export const register = async ({ email, password, name }: RegisterCredentials) =
 
   // Ak registrácia prebehla, vytvor profil
   if (data.user && !error) {
-    await supabase.from('profiles').insert({
+    console.log('[register] Creating profile for user:', data.user.id)
+    const { error: profileError } = await supabase.from('profiles').insert({
       id: data.user.id,
       name: name
     })
+
+    if (profileError) {
+      console.error('[register] Failed to create profile:', profileError)
+      // Profil sa nepodarilo vytvoriť - snaž sa vytvoriť znova s upsert
+      const { error: upsertError } = await supabase.from('profiles').upsert({
+        id: data.user.id,
+        name: name
+      }, { onConflict: 'id' })
+
+      if (upsertError) {
+        console.error('[register] Failed to upsert profile:', upsertError)
+        return {
+          data,
+          error: {
+            message: 'Registrácia prebehla, ale nepodarilo sa vytvoriť profil. Skús sa odhlásiť a prihlásiť znova.',
+            name: 'ProfileCreationError',
+            status: 500
+          } as any
+        }
+      } else {
+        console.log('[register] Profile created via upsert')
+      }
+    } else {
+      console.log('[register] Profile created successfully')
+    }
   }
 
   return { data, error }
@@ -81,4 +107,45 @@ export const updatePassword = async (newPassword: string) => {
   })
 
   return { data, error }
+}
+
+// Vytvoriť/Opraviť chýbajúci profil pre aktuálneho používateľa
+export const ensureProfileExists = async (userId: string, name: string) => {
+  console.log('[ensureProfileExists] Checking/creating profile for:', userId)
+
+  // Najprv skontroluj, či profil existuje
+  const { data: existingProfile, error: checkError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (checkError && checkError.code !== 'PGRST116') {
+    console.error('[ensureProfileExists] Error checking profile:', checkError)
+    return { data: null, error: checkError }
+  }
+
+  if (existingProfile) {
+    console.log('[ensureProfileExists] Profile already exists')
+    return { data: existingProfile as Profile, error: null }
+  }
+
+  // Profil neexistuje, vytvor ho
+  console.log('[ensureProfileExists] Creating new profile...')
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert({
+      id: userId,
+      name: name
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('[ensureProfileExists] Failed to create profile:', error)
+  } else {
+    console.log('[ensureProfileExists] Profile created successfully!')
+  }
+
+  return { data: data as Profile, error }
 }

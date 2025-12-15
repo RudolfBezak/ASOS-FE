@@ -129,24 +129,31 @@ export default function RecipesScreen() {
   }, [filters])
 
   const handleLike = async (recipeId: number) => {
-    if (!user) return
+    console.log('🔵 [handleLike] Starting for recipe:', recipeId, 'user:', user?.id)
+    if (!user) {
+      console.log('⚠️ [handleLike] No user, aborting')
+      return
+    }
 
     try {
       // Uložíme recept do favourite
+      console.log('📤 [handleLike] Calling saveRecipe API...')
       const { error } = await saveRecipe(user.id, recipeId)
       if (error) {
-        console.error('Error saving recipe:', error)
+        console.error('❌ [handleLike] Error saving recipe:', error)
       } else {
+        console.log('✅ [handleLike] Recipe saved successfully!')
         // Odstránime recept zo zoznamu
         setRecipes(prev => prev.filter(r => r.id !== recipeId))
 
         // Ak došli recepty, načítame nové
         if (recipes.length <= 3) {
+          console.log('🔄 [handleLike] Low on recipes, reloading...')
           loadRecipes()
         }
       }
     } catch (err) {
-      console.error('Error:', err)
+      console.error('❌ [handleLike] Exception:', err)
     }
   }
 
