@@ -1,5 +1,5 @@
 // app/(tabs)/recipe-detail.tsx
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
@@ -207,11 +207,6 @@ export default function RecipeDetailScreen() {
                     style={styles.image}
                     resizeMode="cover"
                   />
-                  {image.is_primary && (
-                    <View style={styles.primaryBadge}>
-                      <Text style={styles.primaryBadgeText}>Hlavný obrázok</Text>
-                    </View>
-                  )}
                 </View>
               ))
             ) : (
