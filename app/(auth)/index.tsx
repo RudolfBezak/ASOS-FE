@@ -1,7 +1,7 @@
 // app/(auth)/index.tsx
 import { Link } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Image, Platform, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native'
 import { theme } from '../../lib/theme'
 import { useAuth } from '../../lib/viewmodels/useAuth'
 
@@ -13,30 +13,27 @@ const foodImages = [
 
 export default function AuthScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const { width } = useWindowDimensions()
   const isWeb = Platform.OS === 'web'
-  const { loginWithGoogle, loading } = useAuth()
+  const showDesktopLayout = isWeb && width >= 768
 
   useEffect(() => {
-    if (isWeb) {
+    if (showDesktopLayout) {
       const interval = setInterval(() => {
         setCurrentImageIndex((prev) => (prev + 1) % foodImages.length)
       }, 4000)
 
       return () => clearInterval(interval)
     }
-  }, [isWeb])
-
-  const handleGoogleLogin = async () => {
-    await loginWithGoogle()
-  }
+  }, [showDesktopLayout])
 
   const renderContent = () => (
-    <View style={[styles.content, isWeb && styles.contentWeb]}>
+    <View style={[styles.content, showDesktopLayout && styles.contentWeb]}>
       <View style={styles.hero}>
         <Text style={styles.title}>Recipe Swiper</Text>
 <Text style={styles.subtitle}>Inšpirácia na každý deň</Text>
 <Text style={styles.description}>
-  Nájdite recept presne podľa chuti. Swipe. Ulož. Uvar.
+  Nájdi recept presne podľa chuti. Swipuj. Ulož. Priprav.
 </Text>
       </View>
 
@@ -52,31 +49,11 @@ export default function AuthScreen() {
             <Text style={styles.buttonTextSecondary}>Vytvoriť účet</Text>
           </TouchableOpacity>
         </Link>
-
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>alebo</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <TouchableOpacity
-          style={styles.buttonGoogle}
-          onPress={handleGoogleLogin}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          <View style={styles.googleIconContainer}>
-            <Text style={styles.googleIcon}>G</Text>
-          </View>
-          <Text style={styles.buttonTextGoogle}>
-            {loading ? 'Prihlasovanie...' : 'Pokračovať s Google'}
-          </Text>
-        </TouchableOpacity>
       </View>
     </View>
   )
 
-  if (isWeb) {
+  if (showDesktopLayout) {
     return (
       <View style={styles.containerWeb}>
         {/* Ľavá strana - obrázky */}
@@ -100,7 +77,7 @@ export default function AuthScreen() {
             <Text style={[styles.overlayTitle, {
               textShadow: '0 2px 10px rgba(0,0,0,0.3)',
             } as any]}>
-              Objavuj. Uvar. Zdieľaj.
+              Objav nové recepty
             </Text>
             <View style={styles.dotsContainer}>
               {foodImages.map((_, index) => (

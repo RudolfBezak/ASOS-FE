@@ -14,9 +14,9 @@ export default function Index() {
     )
   }
 
-  // Ak je prihlásený, presmerujem na vytvorenie receptu
+  // Ak je prihlásený, presmerujem na recepty
   if (isLoggedIn) {
-    return <Redirect href={"/(tabs)/recipe_create" as any} />
+    return <Redirect href={"/(tabs)/recipes" as any} />
   }
 
   // Ak nie je prihlásený, presmerujem na auth

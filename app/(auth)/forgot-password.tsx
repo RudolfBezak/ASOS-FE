@@ -1,7 +1,7 @@
 // app/(auth)/forgot-password.tsx
 import { Link, router } from 'expo-router'
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform, Image } from 'react-native'
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform, Image, useWindowDimensions } from 'react-native'
 import { useAuth } from '../../lib/viewmodels/useAuth'
 import { theme } from '../../lib/theme'
 
@@ -16,19 +16,21 @@ export default function ForgotPasswordScreen() {
   const [emailSent, setEmailSent] = useState(false)
   const [validationError, setValidationError] = useState<string | undefined>()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const { width } = useWindowDimensions()
   const isWeb = Platform.OS === 'web'
+  const showDesktopLayout = isWeb && width >= 768
 
   const { forgotPassword, loading, error } = useAuth()
 
   useEffect(() => {
-    if (isWeb) {
+    if (showDesktopLayout) {
       const interval = setInterval(() => {
         setCurrentImageIndex((prev) => (prev + 1) % foodImages.length)
       }, 4000)
 
       return () => clearInterval(interval)
     }
-  }, [isWeb])
+  }, [showDesktopLayout])
 
   const validateEmail = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -77,7 +79,7 @@ export default function ForgotPasswordScreen() {
   const renderForm = () => (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, isWeb && styles.formContainer]}
+      style={[styles.container, showDesktopLayout && styles.formContainer]}
     >
       <View style={styles.content}>
         <View style={styles.header}>
@@ -138,7 +140,7 @@ export default function ForgotPasswordScreen() {
     </KeyboardAvoidingView>
   )
 
-  if (isWeb) {
+  if (showDesktopLayout) {
     return (
       <View style={styles.containerWeb}>
         <View style={styles.imageSection}>

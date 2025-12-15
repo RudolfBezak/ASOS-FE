@@ -1,8 +1,9 @@
 // lib/viewmodels/useAuth.ts
 import { User } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
-import { getCurrentUser, getProfile, login, logout, register, signInWithGoogle, sendPasswordResetEmail, updatePassword } from '../api/auth'
+import { getCurrentUser, getProfile, login, logout, register, sendPasswordResetEmail, updatePassword } from '../api/auth'
 import { Profile } from '../models/types'
+import { supabase } from '../supabase'
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null)
@@ -15,7 +16,7 @@ export const useAuth = () => {
     const loadUser = async () => {
       const { user } = await getCurrentUser()
       setUser(user)
-      
+
       if (user) {
         const { data } = await getProfile(user.id)
         setProfile(data)
@@ -24,6 +25,22 @@ export const useAuth = () => {
     }
 
     loadUser()
+
+    // Sledovať zmeny autentifikácie
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user)
+        const { data: profileData } = await getProfile(session.user.id)
+        setProfile(profileData)
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setProfile(null)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   // Prihlásenie
@@ -73,24 +90,6 @@ export const useAuth = () => {
     setProfile(null)
   }
 
-  // Google OAuth prihlásenie
-  const handleGoogleLogin = async () => {
-    setLoading(true)
-    setError(null)
-
-    const { error } = await signInWithGoogle()
-
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return false
-    }
-
-    // OAuth redirect sa stará o presmerovanie, takže tu len nastavíme loading
-    setLoading(false)
-    return true
-  }
-
   // Zabudnuté heslo
   const handleForgotPassword = async (email: string) => {
     setLoading(true)
@@ -134,7 +133,6 @@ export const useAuth = () => {
     login: handleLogin,
     register: handleRegister,
     logout: handleLogout,
-    loginWithGoogle: handleGoogleLogin,
     forgotPassword: handleForgotPassword,
     resetPassword: handleResetPassword,
   }

@@ -1,7 +1,7 @@
 // app/(auth)/register.tsx
 import { Link, router } from 'expo-router'
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform, Image } from 'react-native'
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform, Image, useWindowDimensions } from 'react-native'
 import { useAuth } from '../../lib/viewmodels/useAuth'
 import { theme } from '../../lib/theme'
 
@@ -23,19 +23,21 @@ export default function RegisterScreen() {
     confirmPassword?: string
   }>({})
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const { width } = useWindowDimensions()
   const isWeb = Platform.OS === 'web'
+  const showDesktopLayout = isWeb && width >= 768
 
   const { register, loading, error } = useAuth()
 
   useEffect(() => {
-    if (isWeb) {
+    if (showDesktopLayout) {
       const interval = setInterval(() => {
         setCurrentImageIndex((prev) => (prev + 1) % foodImages.length)
       }, 4000)
 
       return () => clearInterval(interval)
     }
-  }, [isWeb])
+  }, [showDesktopLayout])
 
   const validateForm = () => {
     const errors: {
@@ -93,7 +95,7 @@ export default function RegisterScreen() {
   const renderForm = () => (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, isWeb && styles.formContainer]}
+      style={[styles.container, showDesktopLayout && styles.formContainer]}
     >
       <View style={styles.content}>
         <View style={styles.header}>
@@ -208,7 +210,7 @@ export default function RegisterScreen() {
     </KeyboardAvoidingView>
   )
 
-  if (isWeb) {
+  if (showDesktopLayout) {
     return (
       <View style={styles.containerWeb}>
         <View style={styles.imageSection}>
