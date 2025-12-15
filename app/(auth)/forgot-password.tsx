@@ -128,7 +128,7 @@ export default function ForgotPasswordScreen() {
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Spamätáš sa? </Text>
+            <Text style={styles.footerText}>Spomenul si si? </Text>
             <Link href={"/(auth)/login" as any} asChild>
               <TouchableOpacity>
                 <Text style={styles.linkText}>Prihlás sa</Text>
