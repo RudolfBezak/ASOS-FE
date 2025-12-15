@@ -6,11 +6,16 @@ import { supabase } from '../supabase'
 export const addRating = async (userId: string, recipeId: number, stars: number) => {
   const { data, error } = await supabase
     .from('ratings')
-    .upsert({
-      user_id: userId,
-      recipe_id: recipeId,
-      stars: stars
-    })
+    .upsert(
+      {
+        user_id: userId,
+        recipe_id: recipeId,
+        stars: stars
+      },
+      {
+        onConflict: 'user_id,recipe_id'
+      }
+    )
     .select()
     .single()
 
@@ -24,9 +29,9 @@ export const getUserRating = async (userId: string, recipeId: number) => {
     .select('*')
     .eq('user_id', userId)
     .eq('recipe_id', recipeId)
-    .single()
+    .maybeSingle()
 
-  return { data: data as Rating, error }
+  return { data: data as Rating | null, error }
 }
 
 // Získať priemerne hodnotenie receptu

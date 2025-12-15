@@ -23,9 +23,9 @@ export const hasUserReported = async (userId: string, recipeId: number) => {
     .select('id')
     .eq('user_id', userId)
     .eq('recipe_id', recipeId)
-    .single()
+    .maybeSingle()
 
-  return { hasReported: !!data, error }
+  return { hasReported: !!data, error: error && error.code !== 'PGRST116' ? error : null }
 }
 
 // Získať počet nahlásení pre recept
