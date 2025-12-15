@@ -333,8 +333,8 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
       <View style={styles.cardStack}>
         {/* Next Card (Behind) - Slides in from opposite side */}
         {nextRecipe && (
-          <Animated.View style={[styles.nextCard, isMobile && styles.mainContentMobile, nextCardStyle]}>
-            <View style={[styles.leftSide, isMobile && styles.leftSideMobile]}>
+          <Animated.View style={[styles.nextCard, nextCardStyle]}>
+            <View style={styles.imageSection}>
               <View style={styles.imageContainer}>
                 {nextImage ? (
                   <Image
@@ -349,17 +349,15 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
                 )}
               </View>
             </View>
-            <View style={[styles.rightSide, isMobile && styles.rightSideMobile]}>
-              <View style={styles.content}>
-                <Text style={styles.title} numberOfLines={2}>{nextRecipe.title}</Text>
-              </View>
+            <View style={styles.content}>
+              <Text style={styles.title} numberOfLines={2}>{nextRecipe.title}</Text>
             </View>
           </Animated.View>
         )}
 
         {/* Current Card (On Top) */}
         <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.mainContent, isMobile && styles.mainContentMobile, cardStyle]}>
+        <Animated.View style={[styles.mainContent, cardStyle]}>
           {/* Like Overlay (Green) - Radial gradient from border to center */}
           <Animated.View style={[styles.swipeOverlay, likeOverlayStyle]} pointerEvents="none">
             <LinearGradient
@@ -381,66 +379,68 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
               style={styles.gradientOverlay}
             />
           </Animated.View>
-        {/* Left Side - Images */}
-        <View style={[styles.leftSide, isMobile && styles.leftSideMobile]}>
-          <View style={styles.imageContainer}>
-            {currentImage ? (
-              <>
-                <Image
-                  source={{ uri: currentImage.image_url }}
-                  style={styles.image}
-                  resizeMode="cover"
-                />
 
-                {/* Image Navigation Arrows - Only show if more than 1 image */}
-                {images.length > 1 && (
-                  <>
-                    <TouchableOpacity
-                      style={[styles.imageArrow, styles.imageArrowLeft]}
-                      onPress={handlePreviousImage}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.imageArrowText}>‹</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.imageArrow, styles.imageArrowRight]}
-                      onPress={handleNextImage}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.imageArrowText}>›</Text>
-                    </TouchableOpacity>
-
-                    {/* Image Dots Indicator */}
-                    <View style={styles.dotsContainer}>
-                      {images.map((_, index) => (
-                        <View
-                          key={index}
-                          style={[
-                            styles.dot,
-                            currentImageIndex === index && styles.dotActive,
-                          ]}
-                        />
-                      ))}
-                    </View>
-                  </>
-                )}
-              </>
-            ) : (
-              <View style={[styles.image, styles.placeholderImage]}>
-                <Text style={styles.placeholderText}>🍳</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Right Side - Information (Scrollable) */}
-        <ScrollView 
+        {/* Vertical Scrollable Content */}
+        <ScrollView
           key={`recipe-scroll-${currentIndex}`}
           ref={scrollViewRef}
-          style={[styles.rightSide, isMobile && styles.rightSideMobile]} 
+          style={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Image Section */}
+          <View style={styles.imageSection}>
+            <View style={styles.imageContainer}>
+              {currentImage ? (
+                <>
+                  <Image
+                    source={{ uri: currentImage.image_url }}
+                    style={styles.image}
+                    resizeMode="cover"
+                  />
+
+                  {/* Image Navigation Arrows - Only show if more than 1 image */}
+                  {images.length > 1 && (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.imageArrow, styles.imageArrowLeft]}
+                        onPress={handlePreviousImage}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.imageArrowText}>‹</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.imageArrow, styles.imageArrowRight]}
+                        onPress={handleNextImage}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.imageArrowText}>›</Text>
+                      </TouchableOpacity>
+
+                      {/* Image Dots Indicator */}
+                      <View style={styles.dotsContainer}>
+                        {images.map((_, index) => (
+                          <View
+                            key={index}
+                            style={[
+                              styles.dot,
+                              currentImageIndex === index && styles.dotActive,
+                            ]}
+                          />
+                        ))}
+                      </View>
+                    </>
+                  )}
+                </>
+              ) : (
+                <View style={[styles.image, styles.placeholderImage]}>
+                  <Text style={styles.placeholderText}>🍳</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Content Section */}
           <View style={styles.content}>
             {/* Title with Report Button */}
             <View style={styles.titleRow}>
@@ -554,7 +554,7 @@ export default function RecipeCarousel({ recipes, onLike, onReport }: RecipeCaro
             </View>
           </View>
         </ScrollView>
-        
+
         </Animated.View>
       </GestureDetector>
       </View>
@@ -604,7 +604,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    flexDirection: 'row',
     backgroundColor: 'white',
     borderRadius: 16,
     overflow: 'hidden',
@@ -643,7 +642,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    flexDirection: 'row',
     backgroundColor: 'white',
     borderRadius: 16,
     overflow: 'hidden',
@@ -654,12 +652,17 @@ const styles = StyleSheet.create({
     elevation: 3,
     zIndex: 2,
   },
-  leftSide: {
-    width: '45%',
+  scrollContent: {
+    flex: 1,
+  },
+  imageSection: {
+    width: '100%',
+    height: 400,
     backgroundColor: '#f5f5f5',
   },
   imageContainer: {
-    flex: 1,
+    width: '100%',
+    height: '100%',
     position: 'relative',
   },
   image: {
@@ -752,9 +755,6 @@ const styles = StyleSheet.create({
     fontSize: 30,
     color: 'white',
     fontWeight: 'bold',
-  },
-  rightSide: {
-    flex: 1,
   },
   content: {
     padding: 24,
@@ -919,18 +919,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.textDisabled,
     fontStyle: 'italic',
-  },
-
-  // Mobile styles - jednosĺpcové rozloženie
-  mainContentMobile: {
-    flexDirection: 'column',
-  },
-  leftSideMobile: {
-    width: '100%',
-    height: 350,
-  },
-  rightSideMobile: {
-    width: '100%',
   },
   swipeOverlay: {
     position: 'absolute',

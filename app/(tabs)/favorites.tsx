@@ -27,6 +27,7 @@ export default function FavoritesScreen() {
   const [error, setError] = useState<string | null>(null)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const prevUserIdRef = useRef<string | null>(null)
+  const [currentImageIndices, setCurrentImageIndices] = useState<Record<number, number>>({})
 
   const loadRecipes = async () => {
     console.log('[loadRecipes] Starting - user:', !!user, 'hasLoadedOnce:', hasLoadedOnce)
@@ -147,6 +148,26 @@ export default function FavoritesScreen() {
     } as any)
   }
 
+  const handleNextImage = (recipeId: number, totalImages: number) => {
+    setCurrentImageIndices(prev => {
+      const currentIndex = prev[recipeId] || 0
+      return {
+        ...prev,
+        [recipeId]: currentIndex === totalImages - 1 ? 0 : currentIndex + 1
+      }
+    })
+  }
+
+  const handlePreviousImage = (recipeId: number, totalImages: number) => {
+    setCurrentImageIndices(prev => {
+      const currentIndex = prev[recipeId] || 0
+      return {
+        ...prev,
+        [recipeId]: currentIndex === 0 ? totalImages - 1 : currentIndex - 1
+      }
+    })
+  }
+
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'easy': return '#4CAF50'
@@ -251,24 +272,79 @@ export default function FavoritesScreen() {
               const imageUrl = primaryImage?.image_url || recipe.recipe_images?.[0]?.image_url
               const isFavorite = isInFavorites(recipe.id)
 
+              const images = recipe.recipe_images || []
+              const currentImageIndex = currentImageIndices[recipe.id] || 0
+              const currentImage = images[currentImageIndex]
+
               return (
-                <TouchableOpacity
-                  key={recipe.id}
-                  style={styles.recipeCard}
-                  onPress={() => handleRecipePress(recipe.id, isFavorite)}
-                  activeOpacity={0.7}
-                >
-                  {/* Image */}
-                  {imageUrl ? (
-                    <Image source={{ uri: imageUrl }} style={styles.recipeImage} resizeMode="cover" />
-                  ) : (
-                    <View style={[styles.recipeImage, styles.placeholderImage]}>
-                      <Text style={styles.placeholderText}>🍳</Text>
-                    </View>
-                  )}
+                <View key={recipe.id} style={styles.recipeCard}>
+                  {/* Image Section with Carousel */}
+                  <View style={styles.imageSection}>
+                    <TouchableOpacity
+                      style={styles.imageTouchable}
+                      onPress={() => handleRecipePress(recipe.id, isFavorite)}
+                      activeOpacity={0.7}
+                    >
+                      {currentImage ? (
+                        <Image
+                          source={{ uri: currentImage.image_url }}
+                          style={styles.recipeImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={[styles.recipeImage, styles.placeholderImage]}>
+                          <Text style={styles.placeholderText}>🍳</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Image Navigation Arrows - Only show if more than 1 image */}
+                    {images.length > 1 && (
+                      <>
+                        <TouchableOpacity
+                          style={[styles.imageArrow, styles.imageArrowLeft]}
+                          onPress={(e) => {
+                            e.stopPropagation()
+                            handlePreviousImage(recipe.id, images.length)
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.imageArrowText}>‹</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.imageArrow, styles.imageArrowRight]}
+                          onPress={(e) => {
+                            e.stopPropagation()
+                            handleNextImage(recipe.id, images.length)
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.imageArrowText}>›</Text>
+                        </TouchableOpacity>
+
+                        {/* Image Dots Indicator */}
+                        <View style={styles.dotsContainer}>
+                          {images.map((_, index) => (
+                            <View
+                              key={index}
+                              style={[
+                                styles.dot,
+                                currentImageIndex === index && styles.dotActive,
+                              ]}
+                            />
+                          ))}
+                        </View>
+                      </>
+                    )}
+                  </View>
 
                   {/* Content */}
-                  <View style={styles.recipeContent}>
+                  <TouchableOpacity
+                    style={styles.recipeContent}
+                    onPress={() => handleRecipePress(recipe.id, isFavorite)}
+                    activeOpacity={0.7}
+                  >
                     <View style={styles.recipeTitleRow}>
                       <Text style={styles.recipeTitle} numberOfLines={1}>{recipe.title}</Text>
                       {isFavorite && <Text style={styles.favoriteHeart}>♥️</Text>}
@@ -328,8 +404,8 @@ export default function FavoritesScreen() {
                         <Text style={styles.removeButtonText}>🗑️</Text>
                       </TouchableOpacity>
                     </View>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </View>
               )
             })}
           </View>
@@ -465,7 +541,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   recipeCard: {
-    flexDirection: 'row',
     backgroundColor: 'white',
     borderRadius: 16,
     overflow: 'hidden',
@@ -476,10 +551,67 @@ const styles = StyleSheet.create({
     elevation: 3,
     marginBottom: 16,
   },
+  imageSection: {
+    width: '100%',
+    height: 250,
+    position: 'relative',
+    backgroundColor: '#f5f5f5',
+  },
+  imageTouchable: {
+    width: '100%',
+    height: '100%',
+  },
   recipeImage: {
-    width: 120,
-    height: 160,
+    width: '100%',
+    height: '100%',
     backgroundColor: '#E0E0E0',
+  },
+  imageArrow: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  imageArrowLeft: {
+    left: 12,
+  },
+  imageArrowRight: {
+    right: 12,
+  },
+  imageArrowText: {
+    fontSize: 32,
+    color: theme.colors.primary,
+    fontWeight: 'bold',
+    marginTop: -4,
+  },
+  dotsContainer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  dotActive: {
+    backgroundColor: 'white',
+    width: 24,
   },
   placeholderImage: {
     justifyContent: 'center',
